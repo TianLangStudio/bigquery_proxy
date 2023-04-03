@@ -24,5 +24,5 @@ response json e.g.
 }
 ```  
 
-![run test screen shot](./imgs/bigquery_proxy_test_run_successfully.png)
+![run test screen shot](./imgs/bigquery_proxy_test_run.png)
 
