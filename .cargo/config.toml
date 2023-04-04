@@ -1,0 +1,3 @@
+[env]
+# set google service account file path there, you can override it by env if force set false
+GCP_SA_KEY = { value = "D:\\work\\googlecloud\\secret-primacy-382307-8c8032cdb8cc.json", force = false }

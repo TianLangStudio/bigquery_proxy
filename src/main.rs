@@ -1,3 +1,4 @@
+use std::env;
 use actix_web::{web, App, Error, HttpResponse, HttpServer};
 use futures::future::FutureExt;
 use gcp_bigquery_client::model::query_request::QueryRequest;
@@ -11,7 +12,7 @@ use log::{debug, info};
 pub const JSON_KEY: &str = "key";
 pub const JSON_KEY_DATA: &str = "data";
 pub const JSON_KEY_ERR: &str = "err";
-
+pub const ENV_GOOGLE_SERVICE_ACCOUNT_KEY: &str = "GCP_SA_KEY";
 async fn bigquery_query(
     project_id: web::Path<String>,
     client: web::Data<Arc<Client>>,
@@ -93,9 +94,11 @@ async fn bigquery_query(
         .body(json!(query_result_map).to_string()))
 }
 async fn create_bq_client() -> Arc<Client> {
-    let gcp_sa_key = "D:\\work\\googlecloud\\secret-primacy-382307-8c8032cdb8cc.json";
+    let gcp_sa_key_default = "D:\\work\\googlecloud\\secret-primacy-382307-8c8032cdb8cc.json";
+    let gcp_sa_key = env::var(ENV_GOOGLE_SERVICE_ACCOUNT_KEY).unwrap_or(gcp_sa_key_default.to_string());
+    info!("gcp_sa_key:{}", gcp_sa_key);
     info!("creating client ...");
-    let client = Client::from_service_account_key_file(gcp_sa_key)
+    let client = Client::from_service_account_key_file(&gcp_sa_key)
         .await
         .expect("create bigquery client error");
     Arc::new(client)
@@ -136,8 +139,8 @@ mod tests {
 
     #[actix_web::test]
     async fn test_bigquery_query() {
-        let client = create_bq_client().await;
         log4rs::init_file("conf/log4rs.yml", Default::default()).unwrap();
+        let client = create_bq_client().await;
         let app = test::init_service(App::new().app_data(web::Data::new(client)).service(
             web::resource("/bigquery/query/{project_id}").route(web::post().to(bigquery_query)),
         ))
@@ -156,11 +159,11 @@ mod tests {
         let resp = app.call(req).await.unwrap();
         let body_bytes = to_bytes(resp.into_body()).await.unwrap();
         let json_result: Value = serde_json::from_slice(&body_bytes).unwrap();
-        println!(
+        info!(
             "json_query:{}",
             serde_json::to_string_pretty(&json_query).unwrap()
         );
-        println!(
+        info!(
             "json_result:{}",
             serde_json::to_string_pretty(&json_result).unwrap()
         );
